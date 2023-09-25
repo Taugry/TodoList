@@ -1,6 +1,8 @@
 import { Component } from '@angular/core';
 import { Todo } from '../Model/todo';
 import { Router } from '@angular/router';
+import { TodoService } from 'src/services/todo-service.service';
+import { first } from 'rxjs';
 
 @Component({
   selector: 'app-details',
@@ -9,11 +11,13 @@ import { Router } from '@angular/router';
 })
 export class DetailsComponent {
   todo: Todo = new Todo();
+  title!: String;
 
-  constructor(private router: Router){}
+  constructor(private router: Router, private todoService: TodoService){}
 
   ngOnInit(): void {
-    this.todo = history.state.data;
+    this.title = history.state.data;    
+    this.todoService.getName(this.title).subscribe(todo => {this.todo = todo; });
   }
   goBack(){
     this.router.navigateByUrl("/");

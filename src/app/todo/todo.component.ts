@@ -1,7 +1,9 @@
-import { Component, TemplateRef } from '@angular/core';
+import { Component, OnInit, TemplateRef } from '@angular/core';
 import { Todo } from '../Model/todo';
 import { NgbModal } from '@ng-bootstrap/ng-bootstrap';
 import { Router } from '@angular/router';
+import { TodoService } from 'src/services/todo-service.service';
+import { first } from 'rxjs';
 
 
 @Component({
@@ -9,41 +11,30 @@ import { Router } from '@angular/router';
   templateUrl: './todo.component.html',
   styleUrls: ['./todo.component.css']
 })
-export class TodoComponent {
+export class TodoComponent implements OnInit {
   todoValue: string = '';
   todoList: Todo[] = [];
   finishList: Todo[]= [];
 
-  ngOnInit(): void {
-    this.todoList = [
-      {
-        title: "Conduire",
-        description: "etre au volant d'un vehicule et le faire deplacer",
-        value: false
-      },
-      {
-        title: "Manger",
-        description: "action qui permet d'ingerer des aliments",
-        value: false
-      },
-      {
-        title: "dormir",
-        description: "action permettant d'entrer en etat de veille profond",
-        value: false
-      }
-    ];
-  
-    this.finishList = [
-      {
-        title: "Eveil",
-        description: "detre dans l'etat inverse de dormir, etre donc pret et attentif",
-        value: true
-      }
-    ];
-  }
-
-  constructor(private modalService: NgbModal,
+  constructor(private todoService: TodoService,
+    private modalService: NgbModal,
     private router: Router){}
+
+
+    
+  ngOnInit(): void {
+    this.todoService.getAll().pipe(first()).subscribe(backTodoList =>{
+      backTodoList.forEach(element => {
+        if(element.value === true){
+          this.finishList.push(element);
+        }else if(element.value === false){
+          this.todoList.push(element);
+        }
+        
+      })      
+    });    
+       
+  }
 
   changeTodo(i: number){
     const item = this.todoList.splice(i,1);
@@ -56,11 +47,8 @@ export class TodoComponent {
 
   addTodo(){
     if(this.todoValue){
-      this.todoList.unshift({
-        title:this.todoValue,
-        description:"",
-        value:false
-      });
+      this.todoService.create({title:this.todoValue, description:"", value:false}).subscribe();
+      this.todoList.unshift({title:this.todoValue, description:"",   value:false});
       this.todoValue = '';
     }
   }
@@ -71,7 +59,7 @@ export class TodoComponent {
       let urlTitle: String = todo.title.replace(/\s/g, '');
       this.router.navigate(["details/"+urlTitle],{
         state:{
-          data: todo
+          data: urlTitle
         }
       })
     }else{
@@ -79,7 +67,7 @@ export class TodoComponent {
       let urlTitle: String = todo.title.replace(/\s/g, '');
       this.router.navigate(["details/"+urlTitle],{
         state:{
-          data: todo
+          data: urlTitle
         }
       })
     }
@@ -90,8 +78,12 @@ export class TodoComponent {
     this.modalService.open(deleteTodo, {ariaLabelledBy: 'model-basic-title'}).result.then(
       (result)=>{
         if(type == 'todoList'){
-          this.todoList.splice(i,1);
+          let temp: Todo = this.todoList[i];
+          this.todoService.delete(temp.title).subscribe();      
+          this.todoList.splice(i,1);    
         }else{
+          let temp: Todo = this.finishList[i];
+          this.todoService.delete(temp.title).subscribe();;
           this.finishList.splice(i,1);
         }
       },
